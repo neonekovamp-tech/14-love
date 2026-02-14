@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Authentication</title>
+    <style>
+        :root {
+            --black: #0d0d0d;
+            --white: #ffffff;
+            --accent: #ff3366;
+            --green: #00ff41; 
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--black);
+        }
+
+        #auth-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--black);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            transition: opacity 1s ease, visibility 1s;
+        }
+
+        .terminal {
+            width: 90%; max-width: 500px;
+            color: var(--green);
+            padding: 20px;
+            border: 1px solid var(--green);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+        }
+
+        .terminal-input {
+            background: transparent;
+            border: none;
+            color: var(--white);
+            font-family: inherit;
+            font-size: 1.2rem;
+            outline: none;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        /* --- Основний Контент (Інь-Ян) --- */
+        .container {
+            position: relative;
+            width: 100vw; height: 100vh;
+            filter: blur(10px); /* Початково розмито */
+            transition: filter 1.5s ease;
+        }
+
+        .container.unlocked { filter: blur(0); }
+
+        .bg-layer {
+            position: absolute; top: 0; width: 50%; height: 100%;
+            transition: all 1.8s cubic-bezier(0.7, 0, 0.3, 1);
+            z-index: 1;
+        }
+        .bg-left { left: 0; background: var(--white); }
+        .bg-right { right: 0; background: var(--black); }
+
+        .side-content {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            width: 50%; text-align: center; z-index: 2;
+            transition: opacity 0.8s ease; pointer-events: none;
+        }
+        .content-left { left: 0; color: var(--black); }
+        .content-right { right: 0; color: var(--white); }
+
+        .yinyang-btn {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px; height: 100px;
+            cursor: pointer; z-index: 10;
+        }
+
+        .final-content {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center; color: white;
+            opacity: 0; z-index: 5;
+            transition: opacity 2s ease 1.2s; width: 80%;
+        }
+
+        /* Стани */
+        .merged .bg-left { transform: translateX(100%); opacity: 0.5; }
+        .merged .bg-right { transform: translateX(0); width: 100%; }
+        .merged .side-content, .merged .yinyang-btn { opacity: 0; pointer-events: none; }
+        .merged .final-content { opacity: 1; }
+
+        @keyframes shake {
+            0% { transform: translate(0,0); }
+            50% { transform: translate(-2px, 2px); }
+            100% { transform: translate(0,0); }
+        }
+        .shaking { animation: shake 0.1s infinite; }
+    </style>
+</head>
+<body>
+
+<div id="auth-overlay">
+    <div class="terminal">
+        <div>> SYSTEM STATUS: LOCKED</div>
+        <div>> ACCESS KEY REQUIRED...</div>
+        <div id="error-msg" style="color: var(--accent); display: none; margin-top: 10px;">[!] WRONG KEY. ACCESS DENIED.</div>
+        <input type="text" id="pass-input" class="terminal-input" placeholder="Введи пароль і натисни Enter..." autofocus>
+    </div>
+</div>
+
+<div class="container" id="mainContainer">
+    <div class="bg-layer bg-left"></div>
+    <div class="bg-layer bg-right"></div>
+
+    <div class="side-content content-left">
+        <h1>ІНЬ</h1>
+        <p>Я — сонячне світло, що не знає зупину</p>
+    </div>
+
+    <div class="side-content content-right">
+        <h1>ЯН</h1>
+        <p>Ти — лагідне сяйво місяця, яке дарує мені мир</p>
+    </div>
+
+    <div class="yinyang-btn" id="trigger">
+        <svg viewBox="0 0 100 100" id="svgIcon">
+            <circle cx="50" cy="50" r="48" fill="none" stroke="#ff3366" stroke-width="2"/>
+            <path d="M50 2 A48 48 0 0 1 50 98 A24 24 0 0 1 50 50 A24 24 0 0 0 50 2" fill="white"/>
+            <path d="M50 2 A48 48 0 0 0 50 98 A24 24 0 0 0 50 50 A24 24 0 0 1 50 2" fill="black"/>
+            <circle cx="50" cy="26" r="6" fill="black"/>
+            <circle cx="50" cy="74" r="6" fill="white"/>
+        </svg>
+    </div>
+
+    <div class="final-content">
+        <h2 style="font-size: 3rem;">Ми — <span style="color: var(--accent);">Perfect Match</span></h2>
+        <p>Дякую, що врівноважуєш мій хаос своєю милою посмішкою <br>Люблю тебе моя кохана Томочка! мій softshark.. я хочу щоб поруч зі мною ти була найщасливішою людиною ❤️</p>
+    </div>
+</div>
+
+<script>
+    // --- ПАРОЛЬ ТУТ ---
+    const SECRET_KEY = "Томочка"; 
+
+    const input = document.getElementById('pass-input');
+    const overlay = document.getElementById('auth-overlay');
+    const container = document.getElementById('mainContainer');
+
+    input.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            if (input.value.toLowerCase() === SECRET_KEY.toLowerCase()) {
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    overlay.style.visibility = 'hidden';
+                    container.classList.add('unlocked');
+                }, 1000);
+            } else {
+                document.getElementById('error-msg').style.display = 'block';
+                input.value = '';
+            }
+        }
+    });
+
+    // --- ЛОГІКА ІНЬ-ЯН ---
+    let holdTimer;
+    const btn = document.getElementById('trigger');
+    const svg = document.getElementById('svgIcon');
+
+    btn.addEventListener('mousedown', startHold);
+    window.addEventListener('mouseup', endHold);
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(); });
+    window.addEventListener('touchend', endHold);
+
+    function startHold() {
+        if (container.classList.contains('merged') || !container.classList.contains('unlocked')) return;
+        container.classList.add('shaking');
+        svg.style.transition = '3s linear';
+        svg.style.transform = 'rotate(1080deg) scale(1.5)';
+        holdTimer = setTimeout(unite, 2500);
+    }
+
+    function endHold() {
+        if (container.classList.contains('merged')) return;
+        clearTimeout(holdTimer);
+        container.classList.remove('shaking');
+        svg.style.transition = '0.5s ease-out';
+        svg.style.transform = 'rotate(0deg) scale(1)';
+    }
+
+    function unite() {
+        container.classList.remove('shaking');
+        container.classList.add('merged');
+    }
+</script>
+
+</body>
+</html>
